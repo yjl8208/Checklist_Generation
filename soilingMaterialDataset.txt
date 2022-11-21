@@ -1,0 +1,19 @@
+atmospheric = 'atmospheric'
+
+biological = 'biological'
+
+bituminous = 'bituminous'
+
+cementitious = 'cementitious'
+
+copper = 'copper'
+
+efflorescene = 'efflorescene'
+
+guano = 'guano'
+
+leachedSalt = 'leached salt'
+
+paint = 'paint'
+
+rust = 'rust'

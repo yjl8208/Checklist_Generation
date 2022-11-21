@@ -1,0 +1,33 @@
+glass = 'glass'
+
+wood = 'wood'
+
+steel = 'steel'
+
+porcelain = 'porcelain'
+
+plastic = 'plastic'
+
+aluminum = 'alumninum'
+
+concreteMasonryUnit = 'concrete masonry unit'
+
+brick = 'brick'
+
+metal = 'metal'
+
+concreteWallPanel = 'concrete wall panel'
+
+stucco = 'stucco'
+
+terrazo = 'terrazo'
+
+travertine = 'travertine'
+
+gypsum = 'gypsum'
+
+ceramic = 'ceramic'
+
+plaster = 'plaster'
+
+stone = 'stone'

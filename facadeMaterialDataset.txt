@@ -1,0 +1,27 @@
+castIron = "cast iron"
+
+castStone = "stone"
+
+naturalStone = "stone"
+
+concrete = "concrete"
+
+glass = "glass"
+
+masonry = "brick masonry"
+
+metal = "metal"
+
+sheetMetal = 'metal'
+
+stucco = "stucco"
+
+EIFS = "EIFS"
+
+terraCotta = "terra cotta"
+
+#start newly added components
+
+test = "test"
+
+random = "random"
