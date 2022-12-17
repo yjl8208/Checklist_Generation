@@ -48,16 +48,17 @@ comparison_list = {}
 
 currentcomponent = ""
 
-#data_frame_columns = ["potential_defects", "components"]
-
-
 #data_frame_columns = ["potential_defects", "components", "checked", "hierarchy", "floor/column",
-#                      "level", "compType", "subcomps", "class", "compOrigName"]
+#                      "level", "compType", "subcomps", "class"]
 
 
-data_frame_columns = ["potential_defects", "components", "checked", "hierarchy", "floor/column",
-                      "level", "compType", "subcomps", "class"]
 
+
+#data_frame_columns = ["potential_defects", "components", "checked", "hierarchy1", "hierarchy2", "hierarchy3","hierarchy4","floor/column",
+#                      "level", "compType", "subcomps", "class"]
+
+data_frame_columns = ["potential_defects", "components", "checked", "hierarchy1", "hierarchy2", "hierarchy3","hierarchy4","floor/column",
+                      "level", "compType", "subcomps", "class", "compName"]
 
 globals()['df'] = pd.DataFrame(columns=data_frame_columns)
 globals()['defect_df'] = pd.read_csv('Defect matrix.csv')
@@ -75,12 +76,7 @@ def add_enum(component_script):
             "input the enum name here, it is assumed that properties will be defined in test_bed")
         exec_str = enum_to_be_added + " = \"" + enum_to_be_added + "\""
 
-        # print(exec_str)
-
         exec(exec_str, globals())
-
-        # print(globals()[class_to_be_added])
-
         enumDataset = open("facadeMaterialDataset.txt", "a")
 
         enumDataset.write("\n\n")
@@ -174,11 +170,7 @@ def add_component(possible_component_types, component_script):
 
             hierarchyDataset.close()
 
-        # print(exec_str)
-
         exec(exec_str, globals())
-
-        # print(globals()[class_to_be_added])
 
         classDataset = open("classDataset.txt", "a")
 
@@ -205,7 +197,7 @@ def add_component(possible_component_types, component_script):
 
 
 def get_hierarchy(component, level):
-    print(component)
+
 
 
     level_num = int(level[5])
@@ -215,14 +207,20 @@ def get_hierarchy(component, level):
         if component[index].isupper():
             component_type = component[:index] + " " + component[index:].lower()
 
-    print(component_type)
-    print(level)
+
 
     hierarchy = globals()['hierarchy_df'][globals()['hierarchy_df'][level].str.contains(component_type, na=False)]
-    print(890234)
-
     hierarchy = hierarchy.iloc[0, 0:level_num]
     hierarchy = hierarchy.values.tolist()
+    print(99012, len(hierarchy))
+    if len(hierarchy) >= 4:
+        pass
+    else:
+        while not len(hierarchy) == 4:
+            hierarchy.append(0)
+
+
+
 
     return hierarchy
 
@@ -238,11 +236,6 @@ def get_defects_from_comp(components_list):
 
     with open(json_path) as json_file:
         defects_list = json.load(json_file)
-
-
-    print(defects_list)
-
-
 
     defectdict = {}
 
@@ -267,7 +260,6 @@ def get_defects_from_comp(components_list):
 
 
 def get_all_possible_components():
-    print(990031)
 
     # edit component_module_file_list as needed
 
@@ -279,14 +271,11 @@ def get_all_possible_components():
 
     for file_name in component_module_file_list:
         for name, cls in inspect.getmembers(importlib.import_module(file_name), inspect.isclass):
-            print(name, type(cls))
             all_possible_components.append(name)
 
     all_possible_components.append("Floor")
     # Because floor class cannot be declared in all_class_declaration(due to having different attributes),
     # I must append "Floor" as a possible_component while not adding it to classDataset.txt
-
-    print(44443)
 
     return all_possible_components
 
@@ -312,18 +301,25 @@ def add_pandas(container, level, floor):
                 comp_var = globals()[list(comp_dict.keys())[0]]
                 if comp_var.__class__.__name__ == 'Floor':
                     component_type = comp_var.__class__.__name__
+
+                    hierarchy_list = get_hierarchy(component_type, "Level"+str(level))
+
                     globals()['df'].loc[len(globals()['df'].index)] = [None, None, 1,
-                                                                       get_hierarchy(component_type, "Level"+str(level)), list(comp_dict.keys())[0], level, Floor, "",
-                                                                       component_type]
+                                                                       hierarchy_list[0], hierarchy_list[1], hierarchy_list[2], hierarchy_list[3],
+                                                                       list(comp_dict.keys())[0], level, Floor, "None",
+                                                                       component_type, "None"]
                     add_pandas(comp_dict, level + 1, list(comp_dict.keys())[0])
                 else:
                     comp_list = []
                     for component in comp_var.materials:
                         comp_list.append(str(component)[18:])
                     component_type = comp_var.__class__.__name__
-                    globals()['df'].loc[len(globals()['df'].index)] = [get_defects_from_comp(comp_list), comp_list, 1,
-                                                                       get_hierarchy(component_type, "Level"+str(level)), floor, level, comp_var.compType, ",".join(comp_var.subComp),
-                                                                       component_type]
+
+                    hierarchy_list = get_hierarchy(component_type, "Level" + str(level))
+
+                    globals()['df'].loc[len(globals()['df'].index)] = [get_defects_from_comp(comp_list), comp_list, 1, hierarchy_list[0],
+                                                                       hierarchy_list[1], hierarchy_list[2], hierarchy_list[3], floor, level, comp_var.compType, ",".join(comp_var.subComp),
+                                                                       component_type, "None"]
                     add_pandas(comp_dict, level+1, floor)
 
             except AttributeError:
@@ -332,10 +328,15 @@ def add_pandas(container, level, floor):
                 for component in comp_var.materials:
                     comp_list.append(str(component)[18:])
                 component_type = comp_var.__class__.__name__
+
+                hierarchy_list = get_hierarchy(component_type, "Level" + str(level))
+
                 globals()['df'].loc[len(globals()['df'].index)] = [get_defects_from_comp(comp_list), comp_list, 1,
-                                                                   get_hierarchy(component_type, "Level" + str(level)),
+                                                                   hierarchy_list[0], hierarchy_list[1],
+                                                                   hierarchy_list[2], hierarchy_list[3],
+
                                                                    floor, level, comp_var.compType, ",".join(comp_var.subComp),
-                                                                   component_type]
+                                                                   component_type, str(comp_dict)]
 
                 globals()["max_levels"] = level
 
@@ -345,7 +346,6 @@ def add_pandas(container, level, floor):
     elif type(container) == dict and container:
         #for array in container.values():
         #print(list(container.values()))
-        print(1001)
         add_pandas(list(container.values())[0], level, floor)
 
 
@@ -407,7 +407,7 @@ def import_test_bed():
     print("What is the file directory of the test_bed? Input the entire directory including txt file name.")
 
     testbed_path = input(
-        "for example: /Users/youngjun/PycharmProjects/DjangoImplementation/ChecklistImplementation/test_bed_1.txt \n")
+        "for example: /Users/youngjun/PycharmProjects/DjangoImplementation/ChecklistImplementation/test_bed_1.txt \n").strip()
 
     # directory = os.getcwd()
     # txt_file_name = 'test_bed_1.txt'
@@ -431,23 +431,18 @@ def exec_each_row_as_python_code(txt_file_itself):
     # now, this function receives data from import_test_bed() and replace_slashes(), and uses
     # the python command of exec() to execute each row in "txt_file_itself" as raw python.
     possible_component_types = get_all_possible_components()
-    print(possible_component_types)
 
     component_types_and_their_count_dictionary = {}
 
     all_current_variables = list(globals())
-    print(all_current_variables)
     for i in txt_file_itself:
         # source: https://stackoverflow.com/questions/41100196/exec-not-working-inside-function-python3-x
-
-        print(i)
         try:
             exec(i, globals())
 
         except NameError:
 
             class_name = i[(i.find("=")+1):i.find("(")].strip()
-            print(class_name)
             error_resolved = False
 
             while not error_resolved:
@@ -489,8 +484,6 @@ def exec_each_row_as_python_code(txt_file_itself):
 
     # ^^^ source: https://stackoverflow.com/questions/14813396/python-an-elegant-way-to-delete-empty-lists-from-python-dictionary
 
-    print(component_types_and_their_count_dictionary)
-    print(4932)
 
     # core assumptions:
     # 1. all component names start from 0
@@ -521,10 +514,8 @@ def sort_all(component_types_and_their_count_dictionary):
         for component in component_types_and_their_count_dictionary[component_types]:
             try:
                 subcomps_array = globals()['%s' % (component)].subComp
-                print(component, 909321)
-                print(globals()['%s' % (component)].__dict__, 909321)
+
                 for subcomps in subcomps_array:
-                    print(4930)
                     for component_types in component_types_and_their_count_dictionary:
                         for component1 in component_types_and_their_count_dictionary[component_types]:
                             if subcomps == component1:
@@ -533,13 +524,9 @@ def sort_all(component_types_and_their_count_dictionary):
             except AttributeError:
                 continue
 
-    print(component_types_and_their_count_dictionary)
-    print(8430)
-
     for k in component_types_and_their_count_dictionary:
         for t in component_types_and_their_count_dictionary[k]:
-            print("track", globals()[t].comPlane)
-            print(t)
+
 
             for p in component_types_and_their_count_dictionary:
                 for n in component_types_and_their_count_dictionary[p]:
@@ -580,7 +567,6 @@ def sort_all(component_types_and_their_count_dictionary):
             # other types of components have only one set of coordinates
 
             ########change so interchangable with columns
-            print(globals()['%s_contains' % (t)])
             if isinstance(globals()[t], Floor):
                 allfloors.append(globals()['%s_contains' % (t)])
 
@@ -619,12 +605,12 @@ def setup_columns(columns_number):
         # globals()['column' + str(i+1)] = Polygon([point1, point2, point3, point4])
         globals()['column_' + str(i + 1)] = Floor(y1, inspectionRange, (x0, 0.00), (i + 1))
         columns_array.append('column_' + str(i + 1))
-        print(globals()['column_' + str(i + 1)])
-        print(globals()['column_' + str(i + 1)].comPlane)
-
-    print(columns_array)
 
     return columns_array
+
+
+
+
 
 
 def main():
@@ -636,55 +622,139 @@ def main():
     component_types_and_their_count_dictionary = exec_each_row_as_python_code(txt_file_itself)
 
     floors_or_columns = input('floors_or_columns? [floors/columns]: ')
-    if floors_or_columns == "columns":
-        number_of_columns = input('how many columns? [input a positive integer]: ')
-        while not number_of_columns.isdigit():
-            number_of_columns = input('how many columns? [Please input a positive integer!]: ')
+    min_x = int(facadePlane.polyCoord[0][0])
+    max_x = int(facadePlane.polyCoord[2][0])
+    xlength = max_x - min_x
+    print(xlength)
 
-        # allfloors = sort_all(component_types_and_their_count_dictionary)
-        ###modify so "component types and their dictionary" excludes floors, includes columns instead
+    if floors_or_columns == "columns":
+        if xlength <= 60:
+            number_of_columns = 1
+            component_types_and_their_count_dictionary['Column'] = setup_columns(int(number_of_columns))
+        else:
+            if (xlength / 60) != (xlength // 60):
+                minimum_number_of_columns = (xlength // 60) + 1
+            else:
+                minimum_number_of_columns = (xlength / 60)
+            number_of_columns = input(f"how many columns? [input a positive integer above {minimum_number_of_columns}]: ")
+            while not number_of_columns.isdigit() or not int(number_of_columns) >= minimum_number_of_columns:
+                number_of_columns = input(f"how many columns? [Please input a positive integer above {minimum_number_of_columns}!]: ")
+
+            component_types_and_their_count_dictionary['Column'] = setup_columns(int(number_of_columns))
 
         del component_types_and_their_count_dictionary['Floor']
 
-        component_types_and_their_count_dictionary['Column'] = setup_columns(int(number_of_columns))
+
+
+
+
+
+
+
+
+
 
         allcolumns = sort_all(component_types_and_their_count_dictionary)
 
-        print(allcolumns)
-        print("here it is")
-
         add_pandas(allcolumns, 2, 0)
 
-        no_dupe_df = globals()['df'].drop_duplicates(subset=['floor/column', 'subcomps', 'class'])
+
+
+
+
+
+
+
+
+
+
+        #no_dupe_df = globals()['df'].drop_duplicates(subset=['floor/column', 'subcomps', 'class'])
+
+        globals()['df'].to_csv('out4.csv')
+
+
+
+        ###core assumption for a certain Window object (or any other object for that matter):
+        ### no two objects will have the same subcomponent list.
+
+
+        ##reference: https://www.statology.org/pandas-combine-rows-with-same-column-value/
+        ###https://stackoverflow.com/questions/27298178/concatenate-strings-from-several-rows-using-pandas-groupby
+        agg_functions = {"potential_defects": 'first', "components": 'first', "checked": 'first', "hierarchy1": 'first', "hierarchy2": 'first', "hierarchy3": 'first',"hierarchy4": 'first',"floor/column" : list,
+                      "level" : 'first', "compType" : 'first', "subcomps" : 'first', "class" : 'first', "compName" : 'first'}
+
+        df_new = globals()['df'].groupby(['subcomps', 'class', 'compName']).aggregate(agg_functions)
+
+        df_new['liststring'] = [','.join(set(sorted(map(str, l)))) + "," for l in df_new['floor/column']]
+        #because list is unhashable in pandas, turn the sorted list into a str for comparison
+
+
+        #https://stackoverflow.com/questions/45306988/column-of-lists-convert-list-to-string-as-a-new-column
+        #https://stackoverflow.com/questions/33198916/getting-attribute-error-map-object-has-no-attribute-sort
+
+
+        #df_new.to_csv('out3.csv')
+
+        #no_dupe_df = globals()['df'].drop_duplicates(subset=['floor/column', 'class'])
+
+        print(df_new)
+
+        #no_dupe_df = df_new.groupby(['liststring', 'class']).first()
+        #https://www.geeksforgeeks.org/delete-duplicates-in-a-pandas-dataframe-based-on-two-columns/
+
+
+        no_dupe_df = df_new.drop_duplicates(subset=['liststring', 'class'], keep='last')
+
+
+
+
+
+        print(no_dupe_df)
 
         # no_dupe_df.to_csv('out.csv')
         # newdf1.to_csv('out.csv')
         # print("check folder")
 
-        print(no_dupe_df)
         no_dupe_df.to_csv('out2.csv')
 
-        select_by_floors = input('select by floors? [y/n]: ')
-        if select_by_floors == 'y':
+        select_by_columns = input('select by columns? [y/n]: ')
+        if select_by_columns == 'y':
 
             cache_original_df = no_dupe_df
 
             no_dupe_df = pd.DataFrame(columns=data_frame_columns)
 
-            selected_floors_array = []
+            selected_columns_array = []
 
-            select_by_floors = input('which floors to be selected? enter until enter "done" ')
-            while select_by_floors != 'done':
-                selected_floors_array.append(select_by_floors)
-                select_by_floors = input('which floors to be selected? enter until enter "done" ')
+            select_by_columns = input('which columns to be selected? enter until enter "done" ')
+            while select_by_columns != 'done':
+                if select_by_columns.isdigit():
+                    selected_columns_array.append(select_by_columns)
+                select_by_columns = input('which columns to be selected? enter until enter "done" ')
+
+
+
+            new_list = []
+            for num in range(int(number_of_columns) + 1):
+                if num in selected_columns_array:
+                    if num not in new_list:
+                        new_list.append(num)
+
+
+            select_by_columns = new_list
+
+
 
             ####add part to get only selected floors
 
-            for floor in selected_floors_array:
+            for column in selected_columns_array:
                 # print(cache_original_df[cache_original_df['floor/column'] == ("floor_" + str(floor))])
 
-                no_dupe_df = pd.concat(
-                    [no_dupe_df, cache_original_df[cache_original_df['floor/column'] == ("floor_" + str(floor))]])
+                #no_dupe_df = pd.concat(
+                #    [no_dupe_df, cache_original_df[cache_original_df['floor/column'] == (str(column))]])
+
+                no_dupe_df = pd.concat([no_dupe_df, cache_original_df[cache_original_df['liststring'].str.contains(f"column_{str(column)},")]])
+            no_dupe_df = no_dupe_df.drop_duplicates(subset=['liststring', 'class'], keep='last')
 
         ########start changing
 
@@ -693,20 +763,33 @@ def main():
 
         allfloors = sort_all(component_types_and_their_count_dictionary)
 
-        print(allfloors, 90902131)
-
         add_pandas(allfloors, 2, 0)
 
+        agg_functions = {"potential_defects": 'first', "components": 'first', "checked": 'first', "hierarchy1": 'first',
+                         "hierarchy2": 'first', "hierarchy3": 'first', "hierarchy4": 'first', "floor/column": list,
+                         "level": 'first', "compType": 'first', "subcomps": 'first', "class": 'first',
+                         "compName": 'first'}
 
+        df_new = globals()['df'].groupby(['subcomps', 'class', 'compName']).aggregate(agg_functions)
 
-        no_dupe_df = globals()['df'].drop_duplicates(subset=['floor/column', 'subcomps', 'class'])
+        df_new['liststring'] = [','.join(set(sorted(map(str, l)))) + "," for l in df_new['floor/column']]
+        # because list is unhashable in pandas, turn the sorted list into a str for comparison
 
-        #no_dupe_df.to_csv('out.csv')
-        # newdf1.to_csv('out.csv')
-        #print("check folder")
+        # https://stackoverflow.com/questions/45306988/column-of-lists-convert-list-to-string-as-a-new-column
+        # https://stackoverflow.com/questions/33198916/getting-attribute-error-map-object-has-no-attribute-sort
+
+        # df_new.to_csv('out3.csv')
+
+        # no_dupe_df = globals()['df'].drop_duplicates(subset=['floor/column', 'class'])
+
+        print(df_new)
+
+        # no_dupe_df = df_new.groupby(['liststring', 'class']).first()
+        # https://www.geeksforgeeks.org/delete-duplicates-in-a-pandas-dataframe-based-on-two-columns/
+
+        no_dupe_df = df_new.drop_duplicates(subset=['liststring', 'class'], keep='last')
 
         print(no_dupe_df)
-        no_dupe_df.to_csv('out2.csv')
 
         select_by_floors = input('select by floors? [y/n]: ')
         if select_by_floors == 'y':
@@ -719,8 +802,30 @@ def main():
 
             select_by_floors = input('which floors to be selected? enter until enter "done" ')
             while select_by_floors != 'done':
-                selected_floors_array.append(select_by_floors)
+                if select_by_floors.isdigit():
+
+                    selected_floors_array.append(int(select_by_floors))
+
                 select_by_floors = input('which floors to be selected? enter until enter "done" ')
+
+            #print(selected_floors_array)
+
+
+            max_floor_in_list = max(selected_floors_array)
+
+
+
+
+
+            new_list = []
+            for num in range(max_floor_in_list + 1):
+                if num in selected_floors_array:
+                    if num not in new_list:
+                        new_list.append(num)
+
+            select_by_columns = new_list
+
+            #print(select_by_columns)
 
             ####add part to get only selected floors
 
@@ -729,9 +834,15 @@ def main():
 
                 #print(cache_original_df[cache_original_df['floor/column'] == ("floor_" + str(floor))])
 
-                no_dupe_df = pd.concat([no_dupe_df, cache_original_df[cache_original_df['floor/column'] == ("floor_" + str(floor))]])
+                no_dupe_df = pd.concat([no_dupe_df, cache_original_df[cache_original_df['liststring'].str.contains(f"floor_{str(floor)},")]])
 
+                #temp_array = cache_original_df[cache_original_df['floor/column'].str.contains(str(floor))==True]
 
+                #print(temp_array)
+
+                #no_dupe_df  = pd.concat([no_dupe_df, temp_array])
+
+            no_dupe_df = no_dupe_df.drop_duplicates(subset=['liststring', 'class'], keep='last')
 
 
 
@@ -744,8 +855,7 @@ def main():
         elif select_by_floors == 'n':
 
             #get_levels_of_components(allfloors, 1, 0, 0)
-
-            print(allfloors)
+            pass
 
 
 
@@ -782,20 +892,51 @@ def main():
 
     #floor starts at level 2
 
-    for level in range(1, user_levels + 1):
+    for level in range(3, user_levels + 1):
         # print(cache_original_df[cache_original_df['floor/column'] == ("floor_" + str(floor))])
 
         no_dupe_df = pd.concat([no_dupe_df, cache_original_df[cache_original_df['level'] == level]])
 
 
 
-    print(no_dupe_df)
     no_dupe_df.to_csv('out.csv')
 
+    Func = open("checklist.html", "w")
+
+    html_dictionary = {}
+
+    level_3_rows = no_dupe_df.loc[no_dupe_df['level'] == 3]
+    level_4_rows = no_dupe_df.loc[no_dupe_df['level'] == 4]
+
+    level_3_rows.to_csv('level_3_rows.csv')
+
+    for row in level_3_rows.index:
+
+        if ((no_dupe_df['level'] == 4) & (no_dupe_df['liststring'] == level_3_rows['liststring'][row])).any():
+            sub_comp_pandas = level_4_rows.loc[level_4_rows['liststring'] == level_3_rows['liststring'][row]]
+            #print(sub_comp_pandas)
 
 
+            Func.write(f"<p>{level_3_rows['class'][row]} ({level_3_rows['liststring'][row]}, {level_3_rows['subcomps'][row]})</p>")
+            for subrow in sub_comp_pandas.index:
+                Func.write(f"<p>&emsp;{sub_comp_pandas['class'][subrow]} ({sub_comp_pandas['liststring'][subrow]}, {sub_comp_pandas['subcomps'][subrow]})</p>")
+                Func.write(f"<p>&emsp;&emsp;{sub_comp_pandas['potential_defects'][subrow]}</p>")
 
+            Func.write("<hr>")
+            #button1 = lev3 -> below, button2 = lev4 -> below, list of defects
+        else:
+            #print(0)
+            Func.write(f"<p>{level_3_rows['class'][row]} ({level_3_rows['liststring'][row]}, {level_3_rows['subcomps'][row]})</p>")
+            Func.write(f"<p>&emsp;{level_3_rows['potential_defects'][row]}</p>")
+            #Func.write("<div class=\"collapsible\"><p>... text to be visible on page load ...</p><p>...</p><p>...</p><p>...</p></div>")
+            Func.write("<hr>")
 
+            #button1 = lev3 -> below, list of defects
+
+    # Saving the data into the HTML file
+    Func.close()
+
+    #reference: https://www.geeksforgeeks.org/how-to-write-to-an-html-file-in-python/
 
 main()
 
